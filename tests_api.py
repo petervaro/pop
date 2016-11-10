@@ -41,6 +41,17 @@ def test_case_youngest_set_good():
 
 
 #------------------------------------------------------------------------------#
+def test_case_age_gender_location_set_good():
+    received = get(youngest=18,
+                   oldest=30,
+                   gender='female',
+                   longitude=51.5,
+                   latitude=-0.15,
+                   radius=1.2)
+    print(received)
+
+
+#------------------------------------------------------------------------------#
 name = value = None
 for name, value in locals().items():
     if name.startswith(PREFIX):

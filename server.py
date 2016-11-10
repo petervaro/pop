@@ -1,11 +1,6 @@
+#!/usr/bin/env python
 ## INFO ##
 ## INFO ##
-
-# Import python modules
-from math import radians
-
-# Import flask modules
-from flask import Flask, jsonify, request
 
 # API documentation
 # =================
@@ -26,323 +21,28 @@ from flask import Flask, jsonify, request
 #     latitude=<float> (default:51.5126064)
 #     radius=<float> (default:1 (miles))
 #     sort=age|rate|gender|distance (default:rate)
-#     order=decreasing|increasing (default:increasing)
+#     order=ascending|descending (default:ascending)
 #     count=all|<int> (default:all)
 #     start=<int> (default:0)
 #     force=true|false (default:false)
 
+# Import python modules
+from sys import argv
 
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+# Import flask modules
+from flask import Flask, jsonify, request
+
+# Import pop modules
+from db.models   import Artist
+from db.database import session
+from db.populate import populate
+from params      import (youngest, oldest, rate, gender, longitude, latitude,
+                         radius, sort, order, count, start, jsonify_error)
+
+
+#------------------------------------------------------------------------------#
 # Module level constants
-YOUNGEST  = 16
-OLDEST    = 74
-CHEAPEST  = 10.00
-PRICIEST  = 39.97
-GENDER    = 'male', 'female', 'both'
-SORT      = 'age', 'rate', 'gender', 'distance'
-ORDER     = 'decreasing', 'increasing'
-COUNT     = 999
-LONGITUDE = radians(-0.1802461)
-LATITUDE  = radians(51.5126064)
-RADIUS    = 1
-
-
-#------------------------------------------------------------------------------#
-class ParamError(Exception):
-
-    CODE = 0
-    TEXT = ''
-
-    #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-    def __init__(self, parameter, got, expected):
-        self.name = parameter
-        self.text = self.TEXT.format(parameter, expected, got)
-
-
-
-#------------------------------------------------------------------------------#
-class ParamTypeError(ParamError):
-
-    CODE = 1
-    TEXT = "Invalid type for '{}': expected {}, but got '{}'"
-
-
-
-#------------------------------------------------------------------------------#
-class ParamValueError(ParamError):
-
-    CODE = 2
-    TEXT = "Invalid value for '{}': expected {}, but got '{}'"
-
-
-
-#------------------------------------------------------------------------------#
-class ParamIsGreaterError(ParamError):
-
-    CODE = 3
-    TEXT = ("Out of range value for '{}': expected to "
-            "be lesser than or equal to {}, but got {}")
-
-
-#------------------------------------------------------------------------------#
-class ParamIsLesserError(ParamError):
-
-    CODE = 4
-    TEXT = ("Out of range value for '{}': expected to "
-            "be greater than or equal to {}, but got {}")
-
-
-#------------------------------------------------------------------------------#
-def jsonify_error(error):
-    return jsonify({'error': {'code': error.CODE,
-                              'text': error.text,
-                              'name': error.name}})
-
-
-#------------------------------------------------------------------------------#
-def youngest(value, force):
-    # If defined
-    try:
-        try:
-            value = int(value)
-        except ValueError:
-            raise ParamTypeError('youngest', value, 'integer')
-
-        if value < YOUNGEST:
-            raise ParamIsLesserError('youngest', value, YOUNGEST)
-
-        return value
-    # If not defined
-    except TypeError:
-        return YOUNGEST
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return YOUNGEST
-        raise error
-
-
-#------------------------------------------------------------------------------#
-def oldest(value, force):
-    # If defined
-    try:
-        try:
-            value = int(value)
-        except ValueError:
-            raise ParamTypeError('oldest', value, 'integer')
-
-        if value > OLDEST:
-            raise ParamIsGreaterError('oldest', value, OLDEST)
-        return value
-    # If not defined
-    except TypeError:
-        return OLDEST
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return OLDEST
-        raise error
-
-
-#------------------------------------------------------------------------------#
-def rate(value, force):
-    # If defined
-    try:
-        try:
-            value = float(value)
-        except ValueError:
-            raise ParamTypeError('rate', value, 'float')
-
-        if value < CHEAPEST:
-            raise ParamIsLesserError('rate', value, CHEAPEST)
-        elif value > PRICIEST:
-            raise ParamIsGreaterError('rate', value, PRICIEST)
-
-        return value
-    # If not defined
-    except TypeError:
-        return CHEAPEST
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return CHEAPEST
-        raise error
-
-
-#------------------------------------------------------------------------------#
-def gender(value, force):
-    # If not defined
-    if value is None:
-        return 'both'
-    # If defined
-    elif value in GENDER:
-        return value
-    # If invalid value defined
-    elif force:
-        return 'both'
-    else:
-        raise ParamValueError('gender', value, "'male', 'female' or 'both'")
-
-
-#------------------------------------------------------------------------------#
-def longitude(value, force):
-    # If defined
-    try:
-        try:
-            value = float(value)
-        except ValueError:
-            raise ParamTypeError('longitude', value, 'float')
-
-        if value < -180:
-            raise ParamIsLesserError('longitude', value, -180)
-        elif value > 180:
-            raise ParamIsGreaterError('longitude', value, 180)
-
-        return radians(value)
-    # If not defined
-    except TypeError:
-        return LONGITUDE
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return LONGITUDE
-        raise error
-
-
-#------------------------------------------------------------------------------#
-def latitude(value, force):
-    # If defined
-    try:
-        try:
-            value = float(value)
-        except ValueError:
-            raise ParamTypeError('latitude', value, 'float')
-
-        if value < -90:
-            raise ParamIsLesserError('latitude', value, -90)
-        elif value > 90:
-            raise ParamIsGreaterError('latitude', value, 90)
-
-        return radians(value)
-    # If not defined
-    except TypeError:
-        return LATITUDE
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return LATITUDE
-        raise error
-
-
-#------------------------------------------------------------------------------#
-def radius(value, force):
-    # If defined
-    try:
-        try:
-            value = float(value)
-        except ValueError:
-            raise ParamTypeError('radius', value, 'float')
-
-        if value < 0:
-            raise ParamIsLesserError('radius', value, 0)
-        # Greater than longest distance on earth in miles
-        elif value > 7926:
-            raise ParamIsGreaterError('radius', value, 7926)
-
-        return radians(value)
-    # If not defined
-    except TypeError:
-        return RADIUS
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return RADIUS
-        raise error
-
-
-#------------------------------------------------------------------------------#
-def sort(value, force):
-    # If not defined
-    if value is None:
-        return 'rate'
-    # If defined
-    elif value in SORT:
-        return value
-    # If invalid value defined
-    elif force:
-        return 'rate'
-    else:
-        raise ParamValueError('gender', value, "'age', 'rate', "
-                                               "'gender' or 'distance'")
-
-
-
-#------------------------------------------------------------------------------#
-def order(value, force):
-    # If not defined
-    if value is None:
-        return 'increasing'
-    # If defined
-    elif value in ORDER:
-        return value
-    # If invalid value defined
-    elif force:
-        return 'increasing'
-    else:
-        raise ParamValueError('order', value, "'decreasing' or 'increasing'")
-
-
-
-#------------------------------------------------------------------------------#
-def count(value, force):
-    # If defined
-    try:
-        try:
-            value = int(value)
-        except ValueError:
-            if value == 'all':
-                return COUNT
-            raise ParamTypeError('count', value, 'integer')
-
-        if value < 1:
-            raise ParamIsLesserError('count', value, 1)
-
-        return value
-    # If not defined
-    except TypeError:
-        return COUNT
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return COUNT
-        raise error
-
-
-#------------------------------------------------------------------------------#
-def start(value, force):
-    # If defined
-    try:
-        try:
-            value = int(value)
-        except ValueError:
-            raise ParamTypeError('start', value, 'integer')
-
-        if value < 0:
-            raise ParamIsLesserError('start', value, 0)
-
-        return value
-    # If not defined
-    except TypeError:
-        return 0
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return 0
-        raise error
-
-
-
-#------------------------------------------------------------------------------#
+DEBUG      = True if len(argv) > 1 and argv[1] in ('-D', '--debug') else False
 PARAMETERS = {
     'youngest' : youngest,
     'oldest'   : oldest,
@@ -354,13 +54,27 @@ PARAMETERS = {
     'sort'     : sort,
     'order'    : order,
     'count'    : count,
-    'start'    : start
+    'start'    : start,
 }
+
+
+#------------------------------------------------------------------------------#
+# Conditional imports
+if DEBUG:
+    # Import sqlalchemy modules
+    from sqlalchemy.dialects import sqlite
 
 
 #------------------------------------------------------------------------------#
 # Setup flask
 app = Flask(__name__)
+app.config.from_object('config')
+
+
+#------------------------------------------------------------------------------#
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    session.remove()
 
 
 #------------------------------------------------------------------------------#
@@ -378,18 +92,43 @@ def artists():
     force = True if force is not None and force != 'false' else False
 
     # Get and set each parameter's value
-    parameters = {}
+    asked = {}
     for parameter, getter in PARAMETERS.items():
         try:
-            parameters[parameter] = getter(request.args.get(parameter), force)
+            asked[parameter] = getter(request.args.get(parameter), force)
         except ParamError as error:
             return jsonify_error(error)
 
-    return jsonify(parameters)
+    # Start the query
+    query = Artist.query
+    query = query.filter(Artist.age.between(asked['youngest'], asked['oldest']))
+    query = query.intersect(Artist.query.filter(Artist.rate <= asked['rate']))
+
+    # If gender is specified
+    if asked['gender'] != 'both':
+        query = query.intersect(Artist.query.filter_by(gender=asked['gender']))
+
+    # Set query order
+    query = query.order_by(
+        getattr({'age'    : Artist.age,
+                 'gender' : Artist.gender,
+                 'rate'   : Artist.rate,
+                 'uuid'   : Artist.uuid}.get(asked['sort'], 'uuid'),
+                asked['order'])())
+
+    # Paginate...
+    query = query.limit(asked['count'])
+
+    # If debugging print the compiled SQL query
+    if DEBUG:
+         print(str(query.statement.compile(dialect=sqlite.dialect())))
+
+    return jsonify([a.serialise() for a in query.all()])
 
 
 
 #------------------------------------------------------------------------------#
 if __name__ == '__main__':
-    app.run(debug = True,
+    #  populate()
+    app.run(debug = DEBUG,
             host  = '0.0.0.0')

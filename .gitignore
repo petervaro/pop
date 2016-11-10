@@ -1,0 +1,8 @@
+# Files
+
+# Folders
+__pycache__
+
+# Extensions
+*.db
+*.pyc
