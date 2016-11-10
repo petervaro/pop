@@ -18,11 +18,13 @@ GENDER       = 'male', 'female', 'both'
 SORT         = 'age', 'rate', 'gender', 'distance'
 ORDER        = {'ascending': 'asc', 'descending': 'desc'}
 COUNT        = 999
+START        = 1
 LONGITUDE    = radians(-0.1802461)
 LATITUDE     = radians(51.5126064)
-RADIUS       = 1
-EARTH_RADIUS = 3963
+EARTH_RADIUS = 6371
 MAX_DISTANCE = pi*EARTH_RADIUS
+MILE_IN_KM   = 1.60934
+RADIUS       = MILE_IN_KM
 
 
 #------------------------------------------------------------------------------#
@@ -229,7 +231,7 @@ def radius(value, force):
         elif value > MAX_DISTANCE:
             raise ParamIsGreaterError('radius', value, MAX_DISTANCE)
 
-        return radians(value)
+        return value*MILE_IN_KM
     # If not defined
     except TypeError:
         return RADIUS
@@ -303,15 +305,15 @@ def start(value, force):
         except ValueError:
             raise ParamTypeError('start', value, 'integer')
 
-        if value < 0:
-            raise ParamIsLesserError('start', value, 0)
+        if value < START:
+            raise ParamIsLesserError('start', value, START)
 
         return value
     # If not defined
     except TypeError:
-        return 0
+        return START
     # If invalid value defined
     except ParamError as error:
         if force:
-            return 0
+            return START
         raise error

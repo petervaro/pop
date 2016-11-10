@@ -14,3 +14,4 @@ SECRET_KEY = (b'\x15\n]\xf3\xb7\xff\x9a\xb8\x0b\xff\xca'
 
 SQLALCHEMY_DATABASE_URI = 'sqlite:///' + join(APP_BASE_DIR, 'artists.db')
 #  SQLALCHEMY_MIGRATE_REPO = join(APP_BASE_DIR, 'db_repository')
+SQLALCHEMY_TRACK_MODIFICATIONS = True

@@ -5,10 +5,11 @@
 from math import degrees
 
 # Import sqlalchemy modules
-from sqlalchemy import Column, Enum, Integer, String, Float
+from sqlalchemy import Column, String, Enum, Integer, Float
 
 # Import pop modules
 from db.database import Base
+
 
 #------------------------------------------------------------------------------#
 class Artist(Base):
