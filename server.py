@@ -10,7 +10,7 @@ from flask import Flask, jsonify, request
 
 # Import sqlalchemy modules
 from sqlalchemy.sql.expression import literal_column
-from sqlalchemy                import true, asc, desc
+from sqlalchemy                import true, asc, desc, case
 
 # Import pop modules
 from db.models   import Artist
@@ -86,10 +86,11 @@ def artists():
         except ParamError as error:
             return jsonify_error(error)
 
-    print(asked)
+    print('>>> ASKED:', asked)
 
     count = asked['count']
     start = (asked['start'] - START)*count
+    weights = asked['sort']
     distance = Artist.distance(asked['latitude'],
                                asked['longitude']).label('distance')
     query = session.query(Artist, distance).filter(
@@ -97,13 +98,13 @@ def artists():
         Artist.rate <= asked['rate'],
         Artist.age.between(asked['youngest'], asked['oldest']),
         literal_column(distance.name) <= asked['radius']
-    ).order_by((asc if asked['order'] == 'asc' else desc)({
-                'age'      : Artist.age,
-                'gender'   : Artist.gender,
-                'rate'     : Artist.rate,
-                'uuid'     : Artist.uuid,
-                'distance' : distance.name,
-                }.get(asked['sort'], 'uuid'))).slice(start, start + count)
+    ).order_by(
+    (asc if asked['order'] == 'asc' else desc)(
+        (weights['age']*Artist.age) +
+        (weights['gender']*Artist.gender) +
+        (weights['rate']*Artist.rate) +
+        (weights['distance']*literal_column(distance.name))
+        )).slice(start, start + count)
 
 
     # If debugging print the compiled SQL query

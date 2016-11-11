@@ -11,6 +11,7 @@ POP Server API Documentation
 - [Base URL](#base-url)
 - [Parameters](#parameters)
 - [Errors](#errors)
+- [Run Tests](#run-tests)
 - [License](#license)
 
 
@@ -44,33 +45,75 @@ $ python server.py --debug
 Base URL
 --------
 
+```
 http://<host>/pop/api/v1.0/artists
+```
 
+Each successful request a list of dictionaries will be returned, containing the
+following keys:
+
+- `'uuid'`
+- `'gender'`
+- `'rate'`
+- `'age'`
+- `'longitude'`
+- `'latitude'`
+- `'distance'`
+
+If the search criteria is too strict and no results can satisfy it, an empty
+list will be returned. On any error, an [error object](#errors) will be
+returned.
 
 
 Parameters
 ----------
 
-youngest=<int> (default:16 (in years))
-oldest=<int> (default:74 (in years))
-rate=<float> (default:10.00 (in pound))
-gender=male|female|both (default:both)
-longitude=<float> (default:-0.1802461 (in degrees))
-latitude=<float> (default:51.5126064 (in degrees))
-radius=<float> (default:1 (in miles))
-sort=age|rate|gender|distance (default:rate)
-order=ascending|descending (default:ascending)
-count=all|<int> (default:all)
-start=<int> (default:0)
-force=true|false (default:false)
+The following parameters and their values are available to refine the search:
+
+- `youngest`: integer, age in years, default: `16`
+- `oldest`: integer, age in years, default: `74`
+- `rate`: float, salary in pounds, default: `10`
+- `gender`: string, either `'male'`, `'female'` or `'both'`, default: `'both'`
+- `longitude`: float, longitudinal coordinate value in degree, default: `-0.1802461`
+- `latitude`: float, latitudinal coordinate value in degree, default: `51.5126064`
+- `radius`: float, distance from a given coordinate in miles, default: `1`
+- `sort`: list, comma separated keys and their weights, their weight is a float,
+  between `0.0` and `1.0`, default: `age*0.1,rate*0.7,gender*0.1,distance*0.1`:
+    - `age`
+    - `rate`
+    - `gender`
+    - `distance`
+- `order`: string, either `'ascending'` or `'descending'`, default: `'ascending'`
+- `count`: integer or string, limiting number of results, default: `'all'`
+- `start`: integer, offset from the beginning of the results, default: `0`
+- `force`: string, either `'true'` or `'false'`, if true, the request is forced
+  to deal with invalid data, that is, it will use values which are close enough
+  to the given invalid parameter or the default ones, default: `'false'`
 
 
 
 Errors
 ------
 
-...
+Each unsuccessful request, that is, request contains invalid parameter names or
+values, will return a dictionary, which has a single key, called `'error'`. The
+value of this key is another dictionary, the error object, which contains 3
+keys:
 
+- `'code'`: integer error code, which can be:
+    - `1` on type error -- expected different type for the given parameter
+    - `2` on value error -- expected different value for the given parameter
+    - `3` on numeric value if it is out of range, lesser than expected
+    - `4` on numeric value if it is out of range, greater than expected
+- `'name'`: string, the name of the parameter where the error occured
+- `'text'`: string, detailed explanation and hint why the error occured
+
+
+
+Run Tests
+---------
+
+<!-- TODO: document tests -->
 
 
 License

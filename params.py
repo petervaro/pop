@@ -93,6 +93,8 @@ def youngest(value, force):
 
         if value < YOUNGEST:
             raise ParamIsLesserError('youngest', value, YOUNGEST)
+        elif value > OLDEST:
+            raise ParamIsGreaterError('youngest', value, OLDEST)
 
         return value
     # If not defined
@@ -116,6 +118,8 @@ def oldest(value, force):
 
         if value > OLDEST:
             raise ParamIsGreaterError('oldest', value, OLDEST)
+        elif value < YOUNGEST:
+            raise ParamIsLesserError('oldest', value, YOUNGEST)
         return value
     # If not defined
     except TypeError:
@@ -243,19 +247,53 @@ def radius(value, force):
 
 
 #------------------------------------------------------------------------------#
-def sort(value, force):
+def sort(values, force):
+    weights = {'age'      : 0.1,
+               'rate'     : 0.7,
+               'gender'   : 0.1,
+               'distance' : 0.1}
+    try:
+        for weight in values.split(','):
+            try:
+                key, weight = weight.split('*')
+            # If weight is missing
+            except ValueError:
+                if force:
+                    continue
+                raise ParamValueError('sort', weight,
+                                      '(age|rate|gender|distance)*<float>')
+
+            if key in weights:
+                try:
+                    weight = float(weight)
+                # If weight is not a number
+                except ValueError:
+                    if not force:
+                        raise ParamTypeError(key, weight, 'float')
+
+                if weight > 1.0:
+                    if force:
+                        weight = 1.0
+                    else:
+                        raise ParamIsGreaterError(key, weight, 1.0)
+                elif weight < 0.0:
+                    if force:
+                        weight = 0.0
+                    else:
+                        raise ParamIsLesserError(key, weight, 0.0)
+
+                # Set weight
+                weights[key] = float(weight)
+            # If key is not valid
+            else:
+                if not force:
+                    raise ParamValueError('sort', key, "'age', 'rate', "
+                                                       "'gender' or 'distance'")
     # If not defined
-    if value is None:
-        return 'rate'
-    # If defined
-    elif value in SORT:
-        return value
-    # If invalid value defined
-    elif force:
-        return 'rate'
-    else:
-        raise ParamValueError('gender', value, "'age', 'rate', "
-                                               "'gender' or 'distance'")
+    except AttributeError:
+        pass
+
+    return weights
 
 
 #------------------------------------------------------------------------------#
