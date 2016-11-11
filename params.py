@@ -14,7 +14,6 @@ YOUNGEST     = 16
 OLDEST       = 74
 CHEAPEST     = 10.00
 PRICIEST     = 39.97
-AVERAGE      = (CHEAPEST + PRICIEST)//2
 GENDER       = 'male', 'female', 'both'
 SORT         = 'age', 'rate', 'gender', 'distance'
 ORDER        = {'ascending': 'asc', 'descending': 'desc'}
@@ -149,11 +148,11 @@ def rate(value, force):
         return value
     # If not defined
     except TypeError:
-        return AVERAGE
+        return PRICIEST
     # If invalid value defined
     except ParamError as error:
         if force:
-            return AVERAGE
+            return PRICIEST
         raise error
 
 

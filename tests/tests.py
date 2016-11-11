@@ -5,8 +5,9 @@
 from utils  import Unexpected
 
 # Import test cases
-from errors import *
-from simple import *
+from errors  import *
+from simple  import *
+from complex import *
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
