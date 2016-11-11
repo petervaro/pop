@@ -3,7 +3,9 @@
 ## INFO ##
 
 # Import python modules
-from sys       import argv
+from sys       import argv, exit
+from itertools import islice
+from os.path   import abspath, dirname, join
 
 # Import flask modules
 from flask import Flask, jsonify, request
@@ -13,37 +15,9 @@ from sqlalchemy.sql.expression import literal_column
 from sqlalchemy                import true, asc, desc, case
 
 # Import pop modules
-from db.models   import Artist
-from db.populate import populate
-from db.database import session
-from params      import (youngest, oldest, rate, gender, longitude, latitude,
-                         radius, sort, order, count, start, jsonify_error,
-                         ParamError, START, EARTH_RADIUS)
-
-
-#------------------------------------------------------------------------------#
-# Module level constants
-DEBUG        = True if len(argv) > 1 and argv[1] in ('-D', '--debug') else False
-PARAMETERS   = {
-    'youngest' : youngest,
-    'oldest'   : oldest,
-    'rate'     : rate,
-    'gender'   : gender,
-    'longitude': longitude,
-    'latitude' : latitude,
-    'radius'   : radius,
-    'sort'     : sort,
-    'order'    : order,
-    'count'    : count,
-    'start'    : start,
-}
-
-
-#------------------------------------------------------------------------------#
-# Conditional imports
-if DEBUG:
-    # Import sqlalchemy modules
-    from sqlalchemy.dialects import sqlite
+from params import (youngest, oldest, rate, gender, longitude, latitude, radius,
+                    sort, order, count, start, jsonify_error, ParamError, START,
+                    EARTH_RADIUS)
 
 
 #------------------------------------------------------------------------------#
@@ -52,22 +26,76 @@ app = Flask(__name__)
 app.config.from_object('config')
 
 
+
+#------------------------------------------------------------------------------#
+# Module level constants
+DEBUG      = False
+POPULATE   = False
+JSON_PATH  = join('db', 'artists.json')
+PARAMETERS = {'youngest' : youngest,
+              'oldest'   : oldest,
+              'rate'     : rate,
+              'gender'   : gender,
+              'longitude': longitude,
+              'latitude' : latitude,
+              'radius'   : radius,
+              'sort'     : sort,
+              'order'    : order,
+              'count'    : count,
+              'start'    : start}
+
+DUMMY_FLAGS    = '-d', '--dummy'
+DEBUG_FLAGS    = '-D', '--debug'
+POPULATE_FLAGS = '-P', '--populate'
+
+
+
+#------------------------------------------------------------------------------#
+# Set values by command line arguments
+for arg in islice(argv, 1, len(argv)):
+    if arg in DEBUG_FLAGS:
+        from sqlalchemy.dialects import sqlite
+        DEBUG     = True
+
+    elif arg in DUMMY_FLAGS:
+        import config
+        JSON_PATH = join('tests', 'artists.json')
+        config.SQLALCHEMY_DATABASE_URI = \
+            'sqlite:///' + join(abspath(dirname(__file__)), 'tests', 'artists.db')
+
+    elif arg in POPULATE_FLAGS:
+        POPULATE = True
+
+
+
+#------------------------------------------------------------------------------#
+# Import pop database related modules
+from db.models   import Artist
+from db.populate import populate
+from db.database import session
+
+
+
 #------------------------------------------------------------------------------#
 @app.teardown_appcontext
 def shutdown_session(exception=None):
     session.remove()
 
-#  @app.before_first_request
-#  def populate_database(*args, counter=[0], **kwargs):
-#      print('POPULATING', counter)
-#      counter[0] += 1
-#      populate()
+
+
+#------------------------------------------------------------------------------#
+if POPULATE:
+    @app.before_first_request
+    def populate_db(*args, **kwargs):
+        populate(JSON_PATH)
+
 
 
 #------------------------------------------------------------------------------#
 @app.route('/')
 def index():
     return 'POP test server is up and running!'
+
 
 
 #------------------------------------------------------------------------------#
@@ -86,7 +114,6 @@ def artists():
         except ParamError as error:
             return jsonify_error(error)
 
-    print('>>> ASKED:', asked)
 
     count = asked['count']
     start = (asked['start'] - START)*count
@@ -109,8 +136,12 @@ def artists():
 
     # If debugging print the compiled SQL query
     if DEBUG:
-         print('\n', str(query.statement.compile(dialect=sqlite.dialect())),
-               end='\n\n', sep='\n')
+        print('\n',
+              str(query.statement.compile(dialect=sqlite.dialect())),
+              'parameters:',
+              asked,
+              sep='\n',
+              end='\n\n')
 
     # Return serialised and jsonified result
     return jsonify([artist.serialise(distance) for artist, distance in query])

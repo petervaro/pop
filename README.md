@@ -27,16 +27,21 @@ Dependencies
 Usage of the Server
 -------------------
 
-Running the server:
+Running server for the first time:
+
+```
+$ python server.py --populate
+```
+
+Running server once its database has been populated:
 
 ```
 $ python server.py
 ```
 
-Running in debug mode:
+For debug mode use the `-D` or the `--debug` flags, like:
 
 ```
-$ python server.py -D
 $ python server.py --debug
 ```
 
@@ -45,12 +50,18 @@ $ python server.py --debug
 Base URL
 --------
 
+The `GET` API uses the following base URL:
+
 ```
 http://<host>/pop/api/v1.0/artists
 ```
 
-Each successful request a list of dictionaries will be returned, containing the
-following keys:
+This request will return the result of a query that is using the default values
+only. To refine the search criterias, one should use the
+[parameters](#parameters).
+
+On each successful request a list of dictionaries will be returned, containing
+the following keys and their values:
 
 - `'uuid'`
 - `'gender'`
@@ -65,6 +76,7 @@ list will be returned. On any error, an [error object](#errors) will be
 returned.
 
 
+
 Parameters
 ----------
 
@@ -72,7 +84,8 @@ The following parameters and their values are available to refine the search:
 
 - `youngest`: integer, age in years, default: `16`
 - `oldest`: integer, age in years, default: `74`
-- `rate`: float, salary in pounds, default: `10`
+- `rate`: float, salary in pounds between &pound;10.00 and &pound;39.97,
+  default: `24`
 - `gender`: string, either `'male'`, `'female'` or `'both'`, default: `'both'`
 - `longitude`: float, longitudinal coordinate value in degree, default: `-0.1802461`
 - `latitude`: float, latitudinal coordinate value in degree, default: `51.5126064`
@@ -113,7 +126,24 @@ keys:
 Run Tests
 ---------
 
-<!-- TODO: document tests -->
+Running server for testing puposes the first time:
+
+```
+$ python server.py --populate --dummy
+```
+
+Running server once its database has been populated:
+
+```
+$ python server.py --dummy
+```
+
+Now, once the server is up and running, once should run the tests:
+
+```
+$ python tests/tests.py
+```
+
 
 
 License

@@ -11,12 +11,12 @@ from db.database import initialise, session
 
 
 #------------------------------------------------------------------------------#
-def populate():
+def populate(path):
     # Initialise database
     initialise()
 
     # Build database from JSON
-    with open('db/artists.json') as file:
+    with open(path) as file:
         artists = load(file)
         for i, artist in enumerate(artists['artists']):
             artist.update(gender='male' if artist['gender'] == 'M' else 'female')

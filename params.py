@@ -14,6 +14,7 @@ YOUNGEST     = 16
 OLDEST       = 74
 CHEAPEST     = 10.00
 PRICIEST     = 39.97
+AVERAGE      = (CHEAPEST + PRICIEST)//2
 GENDER       = 'male', 'female', 'both'
 SORT         = 'age', 'rate', 'gender', 'distance'
 ORDER        = {'ascending': 'asc', 'descending': 'desc'}
@@ -22,9 +23,9 @@ START        = 1
 LONGITUDE    = radians(-0.1802461)
 LATITUDE     = radians(51.5126064)
 EARTH_RADIUS = 6371
-MAX_DISTANCE = pi*EARTH_RADIUS
 MILE_IN_KM   = 1.60934
-RADIUS       = MILE_IN_KM
+RADIUS       = MILE_IN_KM*5
+MAX_DISTANCE = pi*EARTH_RADIUS/MILE_IN_KM
 
 
 #------------------------------------------------------------------------------#
@@ -148,11 +149,11 @@ def rate(value, force):
         return value
     # If not defined
     except TypeError:
-        return CHEAPEST
+        return AVERAGE
     # If invalid value defined
     except ParamError as error:
         if force:
-            return CHEAPEST
+            return AVERAGE
         raise error
 
 
@@ -261,7 +262,7 @@ def sort(values, force):
                 if force:
                     continue
                 raise ParamValueError('sort', weight,
-                                      '(age|rate|gender|distance)*<float>')
+                                      'weight value, eg. age*0.8')
 
             if key in weights:
                 try:

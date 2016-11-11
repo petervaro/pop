@@ -6,21 +6,6 @@ from sqlite3 import connect
 from math    import asin, sin, cos, sqrt, radians
 
 EARTH_RADIUS = 6371
-FILTER = """
-SELECT artists.uuid,
-       artists.gender,
-       artists.age,
-       artists.rate,
-       artists.longitude,
-       artists.latitude,
-       haversine(:latitude, :longitude,
-                 artists.latitude, artists.longitude) AS distance FROM artists
-    WHERE artists.rate <= :rate AND
-          artists.age BETWEEN :youngest AND :oldest AND
-          distance <= :radius
-          ORDER BY distance ASC;
-          LIMIT :limit OFFSET :offset;
-"""
 
 def haversine(lat1, lon1, lat2, lon2) -> 'distance in km':
         return 2*EARTH_RADIUS*asin(
@@ -30,13 +15,20 @@ def haversine(lat1, lon1, lat2, lon2) -> 'distance in km':
 conn = connect('artists.db')
 conn.create_function('haversine', 4, haversine)
 c = conn.cursor()
-xs = c.execute(FILTER, {'youngest'  : 20,
-                        'oldest'    : 22,
-                        'rate'      : 30,
-                        'latitude'  : radians(51.5126064),
-                        'longitude' : radians(-0.1802461),
-                        'radius'    : 16.0934,
-                        'limit'     : 999,
-                        'offset'    : 0})
-for x in xs:
-    print(x)
+
+with open('filter.sql') as query:
+    artists = [a for a in c.execute(query.read(),
+                                    {'youngest': 16,
+                                     'latitude': 0.8990645879639032,
+                                     'oldest': 74,
+                                     'age_rank': 0.1,
+                                     'gender_rank': 0.1,
+                                     'distance_rank': 0.1,
+                                     'rate_rank': 0.7,
+                                     'radius': 8.0467,
+                                     'count': 999,
+                                     'rate': 24.0,
+                                     'longitude': -0.0031458879088789513,
+                                     'start': 1})]
+print('ARTISTS:', *artists, sep='\n')
+print('LENGTH:', len(artists))
