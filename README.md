@@ -108,9 +108,9 @@ The following parameters and their values are available to refine the search:
 Errors
 ------
 
-Each unsuccessful request, that is, request contains invalid parameter names or
-values, will return a dictionary, which has a single key, called `'error'`. The
-value of this key is another dictionary, the error object, which contains 3
+On each unsuccessful request, that is, request contains invalid parameter names
+or values, will return a dictionary, which has a single key, called `'error'`.
+The value of this key is another dictionary, the error object, which contains 3
 keys:
 
 - `'code'`: integer error code, which can be:
@@ -138,7 +138,7 @@ Running server once its database has been populated:
 $ python server.py --dummy
 ```
 
-Now, once the server is up and running, once should run the tests:
+Once the server is up and running, one should run the tests:
 
 ```
 $ python tests/tests.py
