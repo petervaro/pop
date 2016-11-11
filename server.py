@@ -9,8 +9,8 @@ from sys       import argv
 from flask import Flask, jsonify, request
 
 # Import sqlalchemy modules
-from sqlalchemy                import true
-from sqlalchemy.sql.expression import func
+from sqlalchemy.sql.expression import literal_column
+from sqlalchemy                import true, asc, desc
 
 # Import pop modules
 from db.models   import Artist
@@ -23,8 +23,8 @@ from params      import (youngest, oldest, rate, gender, longitude, latitude,
 
 #------------------------------------------------------------------------------#
 # Module level constants
-DEBUG      = True if len(argv) > 1 and argv[1] in ('-D', '--debug') else False
-PARAMETERS = {
+DEBUG        = True if len(argv) > 1 and argv[1] in ('-D', '--debug') else False
+PARAMETERS   = {
     'youngest' : youngest,
     'oldest'   : oldest,
     'rate'     : rate,
@@ -88,36 +88,31 @@ def artists():
 
     print(asked)
 
-    query = Artist.query.filter(
-        Artist.age.between(asked['youngest'], asked['oldest']),
+    count = asked['count']
+    start = (asked['start'] - START)*count
+    distance = Artist.distance(asked['latitude'],
+                               asked['longitude']).label('distance')
+    query = session.query(Artist, distance).filter(
         true() if asked['gender'] == 'both' else Artist.gender == asked['gender'],
         Artist.rate <= asked['rate'],
-        func.haversine(asked['latitude'],
-                       asked['longitude'],
-                       Artist.latitude,
-                       Artist.longitude) <= asked['radius'])
+        Artist.age.between(asked['youngest'], asked['oldest']),
+        literal_column(distance.name) <= asked['radius']
+    ).order_by((asc if asked['order'] == 'asc' else desc)({
+                'age'      : Artist.age,
+                'gender'   : Artist.gender,
+                'rate'     : Artist.rate,
+                'uuid'     : Artist.uuid,
+                'distance' : distance.name,
+                }.get(asked['sort'], 'uuid'))).slice(start, start + count)
 
-    query = query.order_by(
-        getattr({'age'      : Artist.age,
-                 'gender'   : Artist.gender,
-                 'rate'     : Artist.rate,
-                 'uuid'     : Artist.uuid,
-                 'distance' : func.haversine(asked['latitude'],
-                                             asked['longitude'],
-                                             Artist.latitude,
-                                             Artist.longitude)
-                }.get(asked['sort'], 'uuid'),
-                asked['order'])())
 
     # If debugging print the compiled SQL query
     if DEBUG:
          print('\n', str(query.statement.compile(dialect=sqlite.dialect())),
                end='\n\n', sep='\n')
 
-    # Return paginated query
-    count = asked['count']
-    start = (asked['start'] - START)*count
-    return jsonify([a.serialise() for a in query.slice(start, start + count)])
+    # Return serialised and jsonified result
+    return jsonify([artist.serialise(distance) for artist, distance in query])
 
 
 
