@@ -23,7 +23,7 @@ def test_simple_get_the_cheapest_3():
     expected = ("00000000-0000-0000-0000-000000000000",
                 "11111111-1111-1111-1111-111111111111",
                 "22222222-2222-2222-2222-222222222222")
-    received = get(count=3, sort='age*0,gender*0,distance*0,rate*1')
+    received = get(count=3)
 
     if not received:
         raise Unexpected('Expected 3 results, got none')
@@ -40,7 +40,7 @@ def test_simple_get_the_closest_3():
     expected = ("00000000-0000-0000-0000-000000000000",
                 "11111111-1111-1111-1111-111111111111",
                 "22222222-2222-2222-2222-222222222222")
-    received = get(count=3, sort='age*0,gender*0,distance*1,rate*0')
+    received = get(count=3, sort='distance*1')
 
     if not received:
         raise Unexpected('Expected 3 results, got none')
@@ -59,7 +59,7 @@ def test_simple_get_the_youngest_3():
                 "77777777-7777-7777-7777-777777777777")
     received = get(count=3,
                    radius=1000,
-                   sort='age*1,gender*0,distance*0,rate*0')
+                   sort='age*1')
 
     if not received:
         raise Unexpected('Expected 3 results, got none')

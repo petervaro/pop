@@ -13,9 +13,9 @@ from sqlalchemy                import true, asc, desc
 from db.models   import Artist
 from db.populate import populate
 from db.database import session
+from validators  import ParamError
 from params      import (youngest, oldest, rate, gender, longitude, latitude,
-                         radius, sort, order, count, start, jsonify_error,
-                         ParamError, START, EARTH_RADIUS)
+                         radius, sort, order, count, start, START)
 
 
 #------------------------------------------------------------------------------#
@@ -65,8 +65,10 @@ def index():
 #------------------------------------------------------------------------------#
 @app.route('/pop/api/v1.0/artists', methods=['GET'])
 def artists():
-    # If force is 'false' if not defined or specifically defined, otherwise
-    # any value is treated as an attempt to define force to be 'true'
+    # If the user not specifically define 'false' for force (which is the
+    # default) value, then the attempt will be treated as if it were defined as
+    # 'true'. Eg. force=yes or force=1 and even force=fasle (mistyped value)
+    # will be treated as force=true
     force = request.args.get('force')
     force = True if force is not None and force != 'false' else False
 
@@ -76,14 +78,17 @@ def artists():
         try:
             asked[parameter] = getter(request.args.get(parameter), force)
         except ParamError as error:
-            return jsonify_error(error)
+            return error.jsonify()
 
 
-    count = asked['count']
-    start = (asked['start'] - START)*count
-    weights = asked['sort']
+    # Store values more than once locally
+    count    = asked['count']
+    start    = (asked['start'] - START)*count
+    weights  = asked['sort']
     distance = Artist.distance(asked['latitude'],
                                asked['longitude']).label('distance')
+
+    # Do the query
     query = session.query(Artist, distance).filter(
         true() if asked['gender'] == 'both' else Artist.gender == asked['gender'],
         Artist.rate <= asked['rate'],
@@ -98,7 +103,7 @@ def artists():
         )).slice(start, start + count)
 
 
-    # If debugging print the compiled SQL query
+    # If debugging mode is on print the compiled SQL(ite) query
     if app.debug:
         print('\n',
               str(query.statement.compile(dialect=sqlite.dialect())),

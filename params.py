@@ -2,10 +2,17 @@
 ## INFO ##
 
 # Import python modules
-from math import radians, pi
+from math        import radians, pi
+from collections import OrderedDict
 
-# Import flask modules
-from flask import jsonify
+# Import pop modules
+from validators import (enum_value_validator,
+                        range_value_validator,
+                        minimum_value_validator,
+                        ParamTypeError,
+                        ParamValueError,
+                        ParamIsLesserError,
+                        ParamIsGreaterError)
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
@@ -14,244 +21,95 @@ YOUNGEST     = 16
 OLDEST       = 74
 CHEAPEST     = 10.00
 PRICIEST     = 39.97
-GENDER       = 'male', 'female', 'both'
+GENDER       = OrderedDict(((v,v) for v in ('male', 'female', 'both')))
 SORT         = 'age', 'rate', 'gender', 'distance'
-ORDER        = {'ascending': 'asc', 'descending': 'desc'}
+ORDER        = OrderedDict((('ascending', 'asc'), ('descending', 'desc')))
 COUNT        = 999
 START        = 1
 LONGITUDE    = radians(-0.1802461)
 LATITUDE     = radians(51.5126064)
-EARTH_RADIUS = 6371
 MILE_IN_KM   = 1.60934
-RADIUS       = MILE_IN_KM*5
+EARTH_RADIUS = 6371
+RADIUS       = 5*MILE_IN_KM
 MAX_DISTANCE = pi*EARTH_RADIUS/MILE_IN_KM
 
 
+
 #------------------------------------------------------------------------------#
-class ParamError(Exception):
-
-    CODE = 0
-    TEXT = ''
-
-    #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-    def __init__(self, parameter, got, expected):
-        self.name = parameter
-        self.text = self.TEXT.format(parameter, expected, got)
+youngest = range_value_validator(name      = 'youngest',
+                                 type      = int,
+                                 type_name = 'integer',
+                                 minimum   = YOUNGEST,
+                                 maximum   = OLDEST,
+                                 default   = YOUNGEST)
 
 
 
 #------------------------------------------------------------------------------#
-class ParamTypeError(ParamError):
-
-    CODE = 1
-    TEXT = "Invalid type for '{}': expected {}, but got '{}'"
-
-
-
-#------------------------------------------------------------------------------#
-class ParamValueError(ParamError):
-
-    CODE = 2
-    TEXT = "Invalid value for '{}': expected {}, but got '{}'"
+oldest = range_value_validator(name      = 'oldest',
+                               type      = int,
+                               type_name = 'integer',
+                               minimum   = YOUNGEST,
+                               maximum   = OLDEST,
+                               default   = OLDEST)
 
 
 
 #------------------------------------------------------------------------------#
-class ParamIsGreaterError(ParamError):
-
-    CODE = 3
-    TEXT = ("Out of range value for '{}': expected to "
-            "be lesser than or equal to {}, but got {}")
-
-
-
-#------------------------------------------------------------------------------#
-class ParamIsLesserError(ParamError):
-
-    CODE = 4
-    TEXT = ("Out of range value for '{}': expected to "
-            "be greater than or equal to {}, but got {}")
+rate = range_value_validator(name      = 'rate',
+                             type      = float,
+                             type_name = 'floating point number',
+                             minimum   = CHEAPEST,
+                             maximum   = PRICIEST,
+                             default   = PRICIEST)
 
 
 
 #------------------------------------------------------------------------------#
-def jsonify_error(error):
-    return jsonify({'error': {'code': error.CODE,
-                              'text': error.text,
-                              'name': error.name}})
+gender = enum_value_validator(name    = 'gender',
+                              default = 'both',
+                              enums   = GENDER)
 
 
 
 #------------------------------------------------------------------------------#
-def youngest(value, force):
-    # If defined
-    try:
-        try:
-            value = int(value)
-        except ValueError:
-            raise ParamTypeError('youngest', value, 'integer')
+longitude = range_value_validator(name      = 'longitude',
+                                  type      = float,
+                                  type_name = 'floating point number',
+                                  minimum   = -180,
+                                  maximum   = +180,
+                                  default   = LONGITUDE)
 
-        if value < YOUNGEST:
-            raise ParamIsLesserError('youngest', value, YOUNGEST)
-        elif value > OLDEST:
-            raise ParamIsGreaterError('youngest', value, OLDEST)
-
-        return value
-    # If not defined
-    except TypeError:
-        return YOUNGEST
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return YOUNGEST
-        raise error
 
 
 #------------------------------------------------------------------------------#
-def oldest(value, force):
-    # If defined
-    try:
-        try:
-            value = int(value)
-        except ValueError:
-            raise ParamTypeError('oldest', value, 'integer')
+latitude = range_value_validator(name      = 'latitude',
+                                 type      = float,
+                                 type_name = 'floating point number',
+                                 minimum   = -90,
+                                 maximum   = +90,
+                                 default   = LATITUDE)
 
-        if value > OLDEST:
-            raise ParamIsGreaterError('oldest', value, OLDEST)
-        elif value < YOUNGEST:
-            raise ParamIsLesserError('oldest', value, YOUNGEST)
-        return value
-    # If not defined
-    except TypeError:
-        return OLDEST
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return OLDEST
-        raise error
 
 
 #------------------------------------------------------------------------------#
-def rate(value, force):
-    # If defined
-    try:
-        try:
-            value = float(value)
-        except ValueError:
-            raise ParamTypeError('rate', value, 'float')
-
-        if value < CHEAPEST:
-            raise ParamIsLesserError('rate', value, CHEAPEST)
-        elif value > PRICIEST:
-            raise ParamIsGreaterError('rate', value, PRICIEST)
-
-        return value
-    # If not defined
-    except TypeError:
-        return PRICIEST
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return PRICIEST
-        raise error
-
-
-#------------------------------------------------------------------------------#
-def gender(value, force):
-    # If not defined
-    if value is None:
-        return 'both'
-    # If defined
-    elif value in GENDER:
-        return value
-    # If invalid value defined
-    elif force:
-        return 'both'
-    else:
-        raise ParamValueError('gender', value, "'male', 'female' or 'both'")
-
-
-#------------------------------------------------------------------------------#
-def longitude(value, force):
-    # If defined
-    try:
-        try:
-            value = float(value)
-        except ValueError:
-            raise ParamTypeError('longitude', value, 'float')
-
-        if value < -180:
-            raise ParamIsLesserError('longitude', value, -180)
-        elif value > 180:
-            raise ParamIsGreaterError('longitude', value, 180)
-
-        return radians(value)
-    # If not defined
-    except TypeError:
-        return LONGITUDE
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return LONGITUDE
-        raise error
-
-
-#------------------------------------------------------------------------------#
-def latitude(value, force):
-    # If defined
-    try:
-        try:
-            value = float(value)
-        except ValueError:
-            raise ParamTypeError('latitude', value, 'float')
-
-        if value < -90:
-            raise ParamIsLesserError('latitude', value, -90)
-        elif value > 90:
-            raise ParamIsGreaterError('latitude', value, 90)
-
-        return radians(value)
-    # If not defined
-    except TypeError:
-        return LATITUDE
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return LATITUDE
-        raise error
-
-
-#------------------------------------------------------------------------------#
+_radius = range_value_validator(name      = 'radius',
+                               type      = float,
+                               type_name = 'floating point number',
+                               minimum   = 0,
+                               maximum   = MAX_DISTANCE,
+                               default   = RADIUS)
 def radius(value, force):
-    # If defined
-    try:
-        try:
-            value = float(value)
-        except ValueError:
-            raise ParamTypeError('radius', value, 'float')
+    return _radius(value, force)*MILE_IN_KM
 
-        if value < 0:
-            raise ParamIsLesserError('radius', value, 0)
-        elif value > MAX_DISTANCE:
-            raise ParamIsGreaterError('radius', value, MAX_DISTANCE)
-
-        return value*MILE_IN_KM
-    # If not defined
-    except TypeError:
-        return RADIUS
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return RADIUS
-        raise error
 
 
 #------------------------------------------------------------------------------#
 def sort(values, force):
-    weights = {'age'      : 0.1,
-               'rate'     : 0.7,
-               'gender'   : 0.1,
-               'distance' : 0.1}
+    weights = {'age'      : 0.0,
+               'rate'     : 0.0,
+               'gender'   : 0.0,
+               'distance' : 0.0}
     try:
         for weight in values.split(','):
             try:
@@ -296,62 +154,26 @@ def sort(values, force):
     return weights
 
 
+
 #------------------------------------------------------------------------------#
-def order(value, force):
-    # If defined
-    try:
-        return ORDER[value]
-    except KeyError:
-        # If not defined
-        if value is None or force:
-            return 'asc'
-        # If invalid value defined
-        raise ParamValueError('order', value, "'ascending' or 'descending'")
+order = enum_value_validator(name    = 'order',
+                             default = 'asc',
+                             enums   = ORDER)
+
 
 
 #------------------------------------------------------------------------------#
-def count(value, force):
-    # If defined
-    try:
-        try:
-            value = int(value)
-        except ValueError:
-            if value == 'all':
-                return COUNT
-            raise ParamTypeError('count', value, 'integer')
+count = minimum_value_validator(name      = 'count',
+                                type      = int,
+                                type_name = 'integer',
+                                minimum   = 1,
+                                default   = COUNT)
 
-        if value < 1:
-            raise ParamIsLesserError('count', value, 1)
-
-        return value
-    # If not defined
-    except TypeError:
-        return COUNT
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return COUNT
-        raise error
 
 
 #------------------------------------------------------------------------------#
-def start(value, force):
-    # If defined
-    try:
-        try:
-            value = int(value)
-        except ValueError:
-            raise ParamTypeError('start', value, 'integer')
-
-        if value < START:
-            raise ParamIsLesserError('start', value, START)
-
-        return value
-    # If not defined
-    except TypeError:
-        return START
-    # If invalid value defined
-    except ParamError as error:
-        if force:
-            return START
-        raise error
+start = minimum_value_validator(name      = 'start',
+                                type      = int,
+                                type_name = 'integer',
+                                minimum   = START,
+                                default   = START)

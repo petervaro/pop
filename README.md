@@ -85,19 +85,21 @@ The following parameters and their values are available to refine the search:
 - `youngest`: integer, age in years, default: `16`
 - `oldest`: integer, age in years, default: `74`
 - `rate`: float, salary in pounds between &pound;10.00 and &pound;39.97,
-  default: `24`
+  default: `39.97`
 - `gender`: string, either `'male'`, `'female'` or `'both'`, default: `'both'`
 - `longitude`: float, longitudinal coordinate value in degree, default: `-0.1802461`
 - `latitude`: float, latitudinal coordinate value in degree, default: `51.5126064`
 - `radius`: float, distance from a given coordinate in miles, default: `1`
 - `sort`: list, comma separated keys and their weights, their weight is a float,
-  between `0.0` and `1.0`, default: `age*0.1,rate*0.7,gender*0.1,distance*0.1`:
+  between `0.0` and `1.0`, if a weight is not defined it is considered to be
+  `0.0`, default: `age*0,gender*0,distance*0,rate*0`:
     - `age`
     - `rate`
     - `gender`
     - `distance`
 - `order`: string, either `'ascending'` or `'descending'`, default: `'ascending'`
-- `count`: integer or string, limiting number of results, default: `'all'`
+- `count`: integer, limiting the number of the results, if not defined, the
+  query will return as many results as possible, default: -
 - `start`: integer, offset from the beginning of the results, default: `0`
 - `force`: string, either `'true'` or `'false'`, if true, the request is forced
   to deal with invalid data, that is, it will use values which are close enough
